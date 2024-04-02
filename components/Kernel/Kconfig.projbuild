@@ -1,0 +1,222 @@
+menu "Kernel"
+    config NB_TACHE_MAX_KERNEL
+        int "Max Task"
+        default 5
+        help
+            Nombre max de tâche en attente
+
+    config TIMER_DELAY
+        int "Timer Delay"
+        default 15
+        range 10 1000
+        help
+            Temps entre chaque interruption en milliseconde
+
+    config PIN_LED
+        int "Pin led SandGlass"
+        default 4
+        range 1 39
+        help
+            Pin de la led d'état
+endmenu
+
+menu "SPIFFS"
+    config SPIFFS
+        bool "SPIFFS"
+        default y
+        help
+            Permet l'utilisation du système de fichier 
+
+    config TAG_SPIFFS
+        depends on SPIFFS
+        string "TAG SPIFFS"
+        default "SPIFFS"
+        help
+            Tag pour l'initialisation du SPIFFS
+
+    config FILE_NAME
+        depends on SPIFFS
+        string "Name File"
+        default "WiFiSta"
+        help
+            Nom du fichier contenant les réseaux WiFi 
+endmenu
+
+
+
+menu "I2C Configuration"
+    config I2C
+        default "I2C"
+        bool "I2C"
+        default y
+        help
+            Permet l'utilisation de l'I2C
+
+    config TAG_I2C
+        depends on I2C
+        string "TAG I2C"
+        default "I2C"
+        help
+            Tag pour la classe I2C
+
+    config GPIO_RANGE_MAX
+        depends on I2C
+        int
+        default 33
+    
+    choice I2C_PORT
+        depends on I2C
+        prompt "I2C Port"
+        default I2C_PORT_0
+        help 
+            Port pour l'I2C
+
+        config I2C_PORT_0
+            bool "Port 0"
+            help
+                Port 0 de l'I2C
+
+        config I2C_PORT_1
+            bool "Port 1"
+            help
+                Port 1 de l'I2C
+    endchoice 
+
+    config I2C_FREQ
+        depends on I2C
+        int "I2C Frequency"
+        default 400000
+        help
+            Fréquence de l'horloge I2C
+
+    config I2C_SCL_GPIO
+        depends on I2C
+        int "SCL GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 22
+        help
+            numéro du GPIO pour la broche SCL de l'I2C
+
+    config I2C_SDA_GPIO
+        depends on I2C
+        int "SDA GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 21
+        help
+            numéro du GPIO pour la broche SDA de l'I2C
+
+endmenu
+
+
+
+menu "Socket Configuration"
+    config SOCKET
+        bool "Socket"
+        default y
+        help
+            Permet la création d'un serveur Socket
+
+    config TAG_SOCKET
+        depends on SOCKET
+        string "TAG SOCKET"
+        default "Socket"
+        help
+            Tag pour la classe Socket
+
+    config SOCKET_PORT
+        depends on SOCKET
+        int "Port"
+        range 0 65535
+        default 5000
+        help
+            Port du serveur
+
+    config SOCKET_BUF_SIZE
+        depends on SOCKET
+        int "Buf Size"
+        default 128
+        help
+            Taille pour le buffer de reception
+endmenu
+
+
+menu "UART Configuration"
+    config UART
+    bool "UART"
+    default y
+    help
+        Permet l'utilisation de l'UART
+    
+    config TAG_UART
+        depends on UART
+        string "TAG UART"
+        default "UART"
+        help
+            Tag pour la classe UART
+
+    config GPIO_RANGE_MAX
+        depends on UART
+        int
+        default 33
+    
+    choice UART_PORT
+        depends on UART
+        prompt "UART Port"
+        default UART_PORT_0
+        help 
+            Port pour l'UART
+
+        config UART_PORT_0
+        bool "Port 0"
+        help
+            Port 0 de l'UART
+
+        config UART_PORT_1
+        bool "Port 1"
+        help
+            Port 1 de l'UART
+
+        config UART_PORT_2
+            bool "Port 2"
+            help
+                Port 2 de l'UART
+    endchoice 
+            
+    config UART_BAUDRATE
+        depends on UART
+        int "UART Baudrate"
+        default 4800
+        help
+            Vitesse de transmission
+
+    config UART_PIN_TX
+        depends on UART
+        int "Pin UART TX"
+        default 32
+        help
+            Broche TX de l'UART
+
+    config UART_PIN_RX
+        depends on UART
+        int "Pin UART RX"
+        range 0 GPIO_RANGE_MAX
+        default 35
+        help
+            Broche RX de l'UART
+
+    config UART_TX_BUF_SIZE
+        depends on UART
+        int "Buf TX Size"
+        range 0 GPIO_RANGE_MAX
+        default 255
+        help
+            Taille pour le buffer TX
+    
+    config UART_RX_BUF_SIZE
+        depends on UART
+        int "Buf RX Size"
+        default 255
+        help
+            Taille pour le buffer RX
+
+endmenu

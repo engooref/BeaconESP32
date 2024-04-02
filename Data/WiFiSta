@@ -1,0 +1,16 @@
+{
+    "WiFiSta" : [
+        {   
+            "Retry": -1,
+            "SSID" : "Freebox-129BB6",
+            "MDP"  : "nx359qbh34qtwkb5q3h9vd"
+        },
+        {
+            "Retry": 5,
+            "SSID" : "Acer nitro 5",
+            "MDP"  : "AcerNitro01"
+        }
+        
+    ]
+
+}
