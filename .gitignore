@@ -1,2 +1,4 @@
 build/
-.devcontainer/
+Data/
+sdkconfig.old
+sdkconfig
