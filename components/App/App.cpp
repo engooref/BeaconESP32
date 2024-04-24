@@ -6,9 +6,11 @@ using namespace std;
 
 string App::TAG = "App";
 
-#define GPIO_BUTTON GPIO_NUM_22
-#define GPIO_SWITCH GPIO_NUM_21
-
+#define BTN_POUS (gpio_num_t)CONFIG_BTN_POUS
+#define BTN_SWITCH (gpio_num_t)CONFIG_BTN_SWITCH
+#define LED_RED (gpio_num_t)CONFIG_LED_RED
+#define LED_GREEN1 (gpio_num_t)CONFIG_LED_GREEN1
+#define LED_GREEN2 (gpio_num_t)CONFIG_LED_GREEN2
 
 
 App::App() : 
@@ -20,8 +22,16 @@ App::App() :
    GetSandGlass()->AddSequence(SandGlass::CreateSequence(4, seq), true);
    
    GetGPIO()->ChangeMode(GPIO_MODE_INPUT);
-   GetGPIO()->AddGPIO(GPIO_BUTTON); 
+   GetGPIO()->AddGPIO(BTN_POUS); 
+   GetGPIO()->SetPullUp(true);
    GetGPIO()->ApplySetting();
+
+   GetGPIO()->ChangeMode(GPIO_MODE_OUTPUT);
+   GetGPIO()->AddGPIO(LED_RED);
+   GetGPIO()->AddGPIO(LED_GREEN1);
+   GetGPIO()->AddGPIO(LED_GREEN2); 
+   GetGPIO()->ApplySetting();
+ 
 
    m_pNFC = new NFC();
 
@@ -200,7 +210,6 @@ void App::Run() {
    ESP_LOGI(TAG.c_str(), "Lancement de la boucle");
    ESP_LOGI(TAG.c_str(), "En attente d'une connexion socket");
    while(!GetSocket()->IsConnected()) vTaskDelay(25 / portTICK_PERIOD_MS);
-#ifndef CONFIG_PN532_WRITE
    
    auto err = [this]{
       GetSocket()->Send("1;3");
@@ -208,13 +217,18 @@ void App::Run() {
       vTaskDelay(1000 / portTICK_PERIOD_MS);
    };
 
-   while (1)
-   {
+   for(;;) {
+#ifndef CONFIG_PN532_WRITE
 loopback:
+      GetGPIO()->SetLevel(LED_RED, true);
+      GetGPIO()->SetLevel(LED_GREEN1, false);
+      GetGPIO()->SetLevel(LED_GREEN2, false);
+
       reset = false;
       GetSocket()->Send("1;0");
       ESP_LOGI(TAG.c_str(), "En attente de la carte");
-      if(!m_pNFC->ReadId(0)) { err(); goto loopback; }
+      if(!m_pNFC->ReadId(0) ) { err(); goto loopback; }
+      
       
       // Display some basic information about the card
       ESP_LOGI(TAG.c_str(), "Carte trouvée");
@@ -222,17 +236,22 @@ loopback:
       ESP_LOGI(TAG.c_str(), "UID Value:");
       esp_log_buffer_hexdump_internal(TAG.c_str(), m_pNFC->GetUid(), m_pNFC->GetUidLength(), ESP_LOG_INFO);   
 
+      GetGPIO()->SetLevel(LED_GREEN1, true);
       GetSocket()->Send("1;1");
       ESP_LOGI(TAG.c_str(), "Lecture des données stockée dans la carte");
       if(!RetrieveInformationFromNFC()) { err(); goto loopback; }
 
+      
       string str = "1;2";
       str += ";" + m_user.toString(";");
+      
       GetSocket()->Send(str);
       ESP_LOGI(TAG.c_str(), "Chargement terminé");
 
-      while(!GetGPIO()->IsHigh(GPIO_BUTTON)) {
-         if (!m_pNFC->ReadId(0)) { err(); goto loopback; }
+      GetGPIO()->SetLevel(LED_RED, false);
+      GetGPIO()->SetLevel(LED_GREEN2, true);
+      while(GetGPIO()->IsHigh(BTN_POUS)) {
+         if (!m_pNFC->ReadId(500)) { err(); goto loopback; }
          vTaskDelay(50 / portTICK_PERIOD_MS);
       }
 
@@ -240,9 +259,7 @@ loopback:
       ESP_LOGI(TAG.c_str(), "Accès autorisée");
       ESP_LOGI(TAG.c_str(), "En attente du retour de la tablette");
       while(!reset) vTaskDelay(25 / portTICK_PERIOD_MS);
-   }
 #else
-   for(;;) {
       while(!saveInfo) vTaskDelay(25 / portTICK_PERIOD_MS);
       
       ESP_LOGI(TAG.c_str(), "En attente de la carte");
@@ -256,8 +273,8 @@ loopback:
       }
 
       saveInfo = false;
-   }
 #endif
+   }
 }
 
 void App::TraitSocket(void* pObj, char* buf){

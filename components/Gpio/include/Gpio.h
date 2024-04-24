@@ -37,14 +37,22 @@ public:
         ESP_LOGI(TAG.c_str(), "Application des parametres enregistrer");
         gpio_config(&m_io_conf);
         m_io_conf.pin_bit_mask = 0;
+        m_io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+        m_io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     };
 
     void SetLevel(gpio_num_t gpio_num, bool isHigh){
+        ESP_LOGI(TAG.c_str(), "Passage de la broche a l'etat %s", (isHigh) ? "Haut" : "Bas");
         gpio_set_level(gpio_num, (uint32_t)isHigh);
     };
 
     bool IsHigh(gpio_num_t gpio_num){
         return (bool)gpio_get_level(gpio_num);
+    };
+
+    void SetPullUp(bool isUp){
+        m_io_conf.pull_down_en = (isUp) ? GPIO_PULLDOWN_DISABLE : GPIO_PULLDOWN_ENABLE;
+        m_io_conf.pull_up_en = (isUp) ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE;
     };
 
 private:

@@ -1,0 +1,36 @@
+menu "LED Configuration"
+    config LED_RED
+        int "LED Red"
+        default 25
+        range 0 33
+        help
+            Pin led rouge
+
+    config LED_GREEN1
+        int "LED Green 1"
+        default 26
+        range 0 33
+        help
+            Pin led verte 1
+
+    config LED_GREEN2
+        int "LED Green 2"
+        default 27
+        range 0 33
+        help
+            Pin led verte 2
+    
+    config BTN_SWITCH
+        int "Button Switch"
+        default 32
+        range 0 33
+        help
+            Pin bouton switch
+
+    config BTN_POUS
+        int "Button Poussoir"
+        default 33
+        range 0 33
+        help
+            Pin bouton poussoir
+endmenu
