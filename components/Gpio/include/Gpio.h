@@ -42,7 +42,6 @@ public:
     };
 
     void SetLevel(gpio_num_t gpio_num, bool isHigh){
-        ESP_LOGI(TAG.c_str(), "Passage de la broche a l'etat %s", (isHigh) ? "Haut" : "Bas");
         gpio_set_level(gpio_num, (uint32_t)isHigh);
     };
 

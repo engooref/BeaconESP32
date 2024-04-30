@@ -16,11 +16,12 @@
 class WiFi {
 private:
     wifi_config_t m_configWiFi;
+    ClaJSON* m_pParamJSON;
 public:
     WiFi();
     ~WiFi();
 
-    ClaJSON* m_pParamJSON;
+
 public:  
     static void GetIp(char* buf);
 private:

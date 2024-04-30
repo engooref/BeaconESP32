@@ -61,6 +61,15 @@ WiFi::WiFi() :
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     s_pNetif = esp_netif_create_default_wifi_sta();
 
+    string str(CONFIG_LWIP_LOCAL_HOSTNAME);
+#ifdef CONFIG_PN532_WRITE
+    str += " ecriture";
+#else
+    str += " tablette";
+#endif
+
+    esp_netif_set_hostname(s_pNetif, str.c_str());     
+
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 

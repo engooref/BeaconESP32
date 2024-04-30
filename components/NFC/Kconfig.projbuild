@@ -33,4 +33,5 @@ config PN532_WRITE
 	default true
 	help
 		Passe en mode ecriture de carte
+
 endmenu
