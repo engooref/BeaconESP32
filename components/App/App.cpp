@@ -248,12 +248,12 @@ loopback:
       GetSocket()->Send(str);
       ESP_LOGI(TAG.c_str(), "Chargement terminé");
 
-      GetGPIO()->SetLevel(LED_RED, false);
-      GetGPIO()->SetLevel(LED_GREEN2, true);
       while(GetGPIO()->IsHigh(BTN_POUS)) {
          if (!m_pNFC->ReadId(500)) { err(); goto loopback; }
          vTaskDelay(50 / portTICK_PERIOD_MS);
       }
+      GetGPIO()->SetLevel(LED_RED, false);
+      GetGPIO()->SetLevel(LED_GREEN2, true);
 
       GetSocket()->Send("1;4");
       ESP_LOGI(TAG.c_str(), "Accès autorisée");
