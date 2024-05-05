@@ -282,7 +282,7 @@ void App::TraitSocket(void* pObj, char* buf){
    App* pApp = static_cast<App*>(pObj);
    ESP_LOGI(TAG.c_str(), "Message Recu: %s", buf);
 #ifndef CONFIG_PN532_WRITE
-   pApp->reset = (buf[0] == 'O');
+   pApp->reset = (buf[0] == '4');
 #else
 
    char *token;
