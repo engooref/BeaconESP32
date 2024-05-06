@@ -225,6 +225,13 @@ loopback:
       GetGPIO()->SetLevel(LED_GREEN2, false);
 
       reset = false;
+      if(m_pNFC->ReadId(50)) { 
+         GetSocket()->Send("1;5");
+         
+         ESP_LOGI(TAG.c_str(), "En attente de retrait de la carte");
+         while(m_pNFC->ReadId(50));
+      }
+
       GetSocket()->Send("1;0");
       ESP_LOGI(TAG.c_str(), "En attente de la carte");
       if(!m_pNFC->ReadId(0) ) { err(); goto loopback; }
