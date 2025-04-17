@@ -17,9 +17,8 @@ App::App() :
    m_user({"", "", ""})
 {
    
-   GetSocket()->ChangeTraitFunc(TraitSocket, this);
-   int seq[] = {500, 250, 500, 250};
-   GetSandGlass()->AddSequence(SandGlass::CreateSequence(4, seq), true);
+
+   GetBluetooth()->setDataReceivedCallback(App::TraitBluetooth, this);
    
    GetGPIO()->ChangeMode(GPIO_MODE_INPUT);
    GetGPIO()->AddGPIO(BTN_POUS); 
@@ -36,21 +35,25 @@ App::App() :
    m_pNFC = new NFC();
 
    uint32_t versiondata = 0;
-   do 
-   {
-      versiondata = m_pNFC->GetFirmwareVersion();
-      ESP_LOGI(TAG.c_str(), "Didn't find PN53x board");
-      vTaskDelay(500 / portTICK_RATE_MS);
-   } while (!versiondata);
+   // Séquence LED pour attente PN530 (initialisation avec clignotements irréguliers)
+   int seq_pn530[] = {400, 550, 250, 700};
 
-   // Got ok data, print it out!
-   ESP_LOGI(TAG.c_str(), "Found chip PN5 %x", (versiondata >> 24) & 0xFF);
-   ESP_LOGI(TAG.c_str(), "Firmware ver. %d.%d", (versiondata >> 16) & 0xFF, (versiondata >> 8) & 0xFF);
+   GetSandGlass()->AddSequence(SandGlass::CreateSequence(4, seq_pn530), true);
+   ESP_LOGI(TAG.c_str(), "En attente du module de carte");
+   // do 
+   // {
+   //    versiondata = m_pNFC->GetFirmwareVersion();
+   //    vTaskDelay(500 / portTICK_PERIOD_MS);
+   // } while (!versiondata);
 
-   // configure board to read RFID tags
-   m_pNFC->SAMConfig();
-   uint8_t key[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-   m_pNFC->SetKey(0x00, key);
+   // // Got ok data, print it out!
+   // ESP_LOGI(TAG.c_str(), "Found chip PN5 %x", (unsigned int)(((versiondata >> 24) & 0xFF)));
+   // ESP_LOGI(TAG.c_str(), "Firmware ver. %d.%d", (int)(versiondata >> 16) & 0xFF, (int)(versiondata >> 8) & 0xFF);
+
+   // // configure board to read RFID tags
+   // m_pNFC->SAMConfig();
+   // uint8_t key[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+   // m_pNFC->SetKey(0x00, key);
 
    Run(); 
 }
@@ -59,6 +62,7 @@ App::~App(){
    if (m_pNFC) delete m_pNFC;
 }
 
+#ifdef CONFIG_PN532_WRITE
 uint8_t App::SaveInformationIntoNFC() {
    memset(dataSector, 0, sizeof(dataSector));
    uint8_t deb = 0x04, fin = 0x04;
@@ -140,6 +144,7 @@ uint8_t App::SaveInformationIntoNFC() {
 
    return 1;
 }
+#endif
 
 uint8_t App::RetrieveInformationFromNFC() {
    memset(dataSector, 0, sizeof(dataSector));
@@ -184,7 +189,7 @@ uint8_t App::RetrieveInformationFromNFC() {
             uint8_t data[BLOCK_SIZE];
             memcpy(data, dataSector[sectorIndex][blockIdx], BLOCK_SIZE);
             for(int i = 0; (i < BLOCK_SIZE) && (data[i] != 0xFF); i++)
-               str += static_cast<const char>(data[i]);
+               str += static_cast<char>(data[i]);
          }
    };
 
@@ -208,88 +213,115 @@ uint8_t App::RetrieveInformationFromNFC() {
 
 void App::Run() {
    ESP_LOGI(TAG.c_str(), "Lancement de la boucle");
-   ESP_LOGI(TAG.c_str(), "En attente d'une connexion socket");
-   while(!GetSocket()->IsConnected()) vTaskDelay(25 / portTICK_PERIOD_MS);
-   
+   ESP_LOGI(TAG.c_str(), "En attente d'une connexion bluetooth");
+   // Séquence LED pour attente Bluetooth (initialisation avec clignotements irréguliers)
+   int seq_bluetooth[] = {150, 250, 350, 200};
+
+
+   GetSandGlass()->AddSequence(SandGlass::CreateSequence(4, seq_bluetooth), true);
+   GetBluetooth()->waitForConnectionLoop();
+
+   // Séquence LED pour attente Bluetooth (initialisation avec clignotements irréguliers)
+   int seq[] = {250, 500, 250, 500};
+
+
+   GetSandGlass()->AddSequence(SandGlass::CreateSequence(4, seq), true);
    auto err = [this]{
-      GetSocket()->Send("1;3");
+      GetBluetooth()->Send("1;3");
       ESP_LOGI(TAG.c_str(), "Retrait de la carte prematurée");
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
    };
 
+
+   STATE_ESP state = IDLE, prev_state = IDLE_RETRAIT;
    for(;;) {
 #ifndef CONFIG_PN532_WRITE
-loopback:
-      GetGPIO()->SetLevel(LED_RED, true);
-      GetGPIO()->SetLevel(LED_GREEN1, false);
-      GetGPIO()->SetLevel(LED_GREEN2, false);
 
-      reset = false;
-      if(m_pNFC->ReadId(50)) { 
-         GetSocket()->Send("1;5");
-         
-         ESP_LOGI(TAG.c_str(), "En attente de retrait de la carte");
-         while(m_pNFC->ReadId(50));
+      if (state != prev_state) {
+         prev_state = state;
+         switch (state) {
+            case IDLE:
+               ESP_LOGI(TAG.c_str(), "En attente de la carte");
+               break;
+            
+            case IDLE_RETRAIT:
+               ESP_LOGI(TAG.c_str(), "En attente de retrait de la carte");
+            break;
+
+            default:
+               break;
+         }
+      
       }
 
-      GetSocket()->Send("1;0");
-      ESP_LOGI(TAG.c_str(), "En attente de la carte");
-      if(!m_pNFC->ReadId(0) ) { err(); goto loopback; }
-      
-      
-      // Display some basic information about the card
-      ESP_LOGI(TAG.c_str(), "Carte trouvée");
-      ESP_LOGI(TAG.c_str(), "UID Length: %d bytes", m_pNFC->GetUidLength());
-      ESP_LOGI(TAG.c_str(), "UID Value:");
-      esp_log_buffer_hexdump_internal(TAG.c_str(), m_pNFC->GetUid(), m_pNFC->GetUidLength(), ESP_LOG_INFO);   
+      switch (state) {
+         case IDLE:
+            GetGPIO()->SetLevel(LED_RED, true);
+            GetGPIO()->SetLevel(LED_GREEN1, false);
+            GetGPIO()->SetLevel(LED_GREEN2, false);
+            GetBluetooth()->Send("1;0");
+            if(m_pNFC->ReadId(50)) state = CARD_DETECTED; 
+            break;
+            
+         case CARD_DETECTED:
+            if(!m_pNFC->ReadId(50) ) { err(); continue; } 
+            ESP_LOGI(TAG.c_str(), "Carte trouvée");
+            ESP_LOGI(TAG.c_str(), "UID Length: %d bytes", m_pNFC->GetUidLength());
+            ESP_LOGI(TAG.c_str(), "UID Value:");
+            esp_log_buffer_hexdump_internal(TAG.c_str(), m_pNFC->GetUid(), m_pNFC->GetUidLength(), ESP_LOG_INFO);   
 
-      GetGPIO()->SetLevel(LED_GREEN1, true);
-      GetSocket()->Send("1;1");
-      ESP_LOGI(TAG.c_str(), "Lecture des données stockée dans la carte");
-      if(!RetrieveInformationFromNFC()) { err(); goto loopback; }
-
-      
-      string str = "1;2";
-      str += ";" + m_user.toString(";");
-      
-      GetSocket()->Send(str);
-      ESP_LOGI(TAG.c_str(), "Chargement terminé");
-
-      while(GetGPIO()->IsHigh(BTN_POUS)) {
-         if (!m_pNFC->ReadId(500)) { err(); goto loopback; }
-         vTaskDelay(50 / portTICK_PERIOD_MS);
-      }
-      GetGPIO()->SetLevel(LED_RED, false);
-      GetGPIO()->SetLevel(LED_GREEN2, true);
-
-      GetSocket()->Send("1;4");
-      ESP_LOGI(TAG.c_str(), "Accès autorisée");
-      ESP_LOGI(TAG.c_str(), "En attente du retour de la tablette");
-      while(!reset) vTaskDelay(25 / portTICK_PERIOD_MS);
+            GetGPIO()->SetLevel(LED_GREEN1, true);
+            GetBluetooth()->Send("1;1");
+            ESP_LOGI(TAG.c_str(), "Lecture des données stockée dans la carte");
+            if(!RetrieveInformationFromNFC()) { err(); continue; }
+            GetBluetooth()->Send("1;2");
+            ESP_LOGI(TAG.c_str(), "Chargement terminé");
+            while(GetGPIO()->IsHigh(BTN_POUS)) {
+               if (!m_pNFC->ReadId(500)) err();
+               vTaskDelay(50 / portTICK_PERIOD_MS);
+            }
+            
+            GetGPIO()->SetLevel(LED_RED, false);
+            GetGPIO()->SetLevel(LED_GREEN2, true);
+            GetBluetooth()->Send("1;4");
+            ESP_LOGI(TAG.c_str(), "Accès autorisée");
+            state = IDLE_RETRAIT;
+            break;
+         case IDLE_RETRAIT:
+               GetBluetooth()->Send("1;5");
+               if(!m_pNFC->ReadId(50) && reset) state = IDLE;
+            break;
+         default:
+            break;
+         }
 #else
       while(!saveInfo) vTaskDelay(25 / portTICK_PERIOD_MS);
-      
+      saveInfo = false;
+
       ESP_LOGI(TAG.c_str(), "En attente de la carte");
+      GetBluetooth()->Send("En attente de la carte");
       while(!m_pNFC->ReadId(0));
       
       ESP_LOGI(TAG.c_str(), "Ecriture de la carte en cours");
+      GetBluetooth()->Send("Ecriture de la carte en cours");
       if(SaveInformationIntoNFC()) {
          ESP_LOGI(TAG.c_str(), "Information Enregistrée avec Succès");
+         GetBluetooth()->Send("1");
       } else {
          ESP_LOGE(TAG.c_str(), "Erreur lors de l'enregistrement");
+         GetBluetooth()->Send("0");
       }
 
-      saveInfo = false;
+      
 #endif
    }
 }
 
-void App::TraitSocket(void* pObj, char* buf){
+void App::TraitBluetooth(void* pObj, const uint8_t* data, uint16_t len){
 
    App* pApp = static_cast<App*>(pObj);
-   ESP_LOGI(TAG.c_str(), "Message Recu: %s", buf);
+   ESP_LOGI(TAG.c_str(), "Message Recu: %.*s", len, data);
 #ifndef CONFIG_PN532_WRITE
-   pApp->reset = (buf[0] == '4');
+   pApp->reset = (data[0] == '4');
 #else
 
    char *token;

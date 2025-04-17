@@ -7,7 +7,7 @@
 #include "sdkconfig.h"
 
 #include <esp_log.h>
-#include <esp_log_internal.h>
+#include <esp_log_buffer.h>
 
 #include "utils.h"
 
@@ -30,7 +30,7 @@
 #define _BV(bit) (1 << (bit))
 #endif
 
-#define PN532_DELAY(ms) vTaskDelay(ms / portTICK_RATE_MS)
+#define PN532_DELAY(ms) vTaskDelay(ms / portTICK_PERIOD_MS)
 
 using namespace std;
 
@@ -42,10 +42,10 @@ NFC::NFC() :
     _mosi(gpio_num_t(CONFIG_PN532_MOSI)),
     _ss(gpio_num_t(CONFIG_PN532_SS))
 {
-    gpio_pad_select_gpio(_clk);
-    gpio_pad_select_gpio(_miso);
-    gpio_pad_select_gpio(_mosi);
-    gpio_pad_select_gpio(_ss);
+    esp_rom_gpio_pad_select_gpio(_clk);
+    esp_rom_gpio_pad_select_gpio(_miso);
+    esp_rom_gpio_pad_select_gpio(_mosi);
+    esp_rom_gpio_pad_select_gpio(_ss);
 
     gpio_set_direction(_ss, GPIO_MODE_OUTPUT);
     gpio_set_level(_ss, 1);

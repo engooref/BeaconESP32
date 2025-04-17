@@ -1,8 +1,6 @@
 #ifndef APP_H_
 #define APP_H_
 
-
-
 #include "Kernel.h"
 #include "NFC.h"
 
@@ -21,6 +19,12 @@ struct HeaderInfo {
     uint8_t id;       // Identifiant de l'information
     uint8_t blockDeb; // Bloc de début de l'information
     uint8_t blockFin; // Bloc de fin de l'information
+};
+
+enum STATE_ESP {
+    IDLE = 0, //En attente
+    CARD_DETECTED, //Carte Trouve
+    IDLE_RETRAIT, //En Attente de retrait
 };
  
 class App : public Kernel {
@@ -49,7 +53,7 @@ public:
 
 
 private:
-    static void TraitSocket(void* pObj, char* buf);
+    static void TraitBluetooth(void* pObj, const uint8_t* data, uint16_t len);
     static std::string TAG;
 };
 #endif //APP_H_

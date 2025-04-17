@@ -1,2 +1,3 @@
 idf_component_register(SRCS "NFC.cpp"
-                    INCLUDE_DIRS "include")
+                    INCLUDE_DIRS "include"
+                    REQUIRES driver)

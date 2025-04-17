@@ -26,8 +26,8 @@ Kernel::Kernel() :
     ,m_pUart(nullptr)
 #endif 
 
-#ifdef CONFIG_SOCKET
-    ,m_pSocket(nullptr)
+#ifdef CONFIG_BLUETOOTH
+    ,m_pBluetooth(nullptr)
 #endif
 {
     try {
@@ -60,10 +60,11 @@ Kernel::Kernel() :
         ESP_LOGI(TAG.c_str(), "Initialisation de l'UART terminé");
 #endif
 
-#ifdef CONFIG_SOCKET
-        ESP_LOGI(TAG.c_str(), "Initialisation du serveur Socket");
-        m_pSocket = new Socket(*m_pSandGlass);
-        ESP_LOGI(TAG.c_str(), "Initialisation du serveur Socket terminé");
+#ifdef CONFIG_BLUETOOTH
+        ESP_LOGI(TAG.c_str(), "Initialisation du Bluetooth");
+        m_pBluetooth = new BluetoothManager();
+        ESP_ERROR_CHECK_WITHOUT_ABORT(m_pBluetooth->init());
+        ESP_LOGI(TAG.c_str(), "Initialisation du Bluetooth terminé");
 #endif
 
         ESP_LOGI(TAG.c_str(), "Initialisation des composants terminé");
@@ -77,10 +78,6 @@ Kernel::Kernel() :
 Kernel::~Kernel() {
     ESP_LOGI(TAG.c_str(), "Destruction de la classe Kernel");
 
-#ifdef CONFIG_SOCKET
-    if(m_pSocket)    {delete m_pSocket; m_pSocket = nullptr;}
-#endif
-
 #ifdef CONFIG_UART
     if(m_pUart)      {delete m_pUart; m_pUart = nullptr;}
 #endif
@@ -89,8 +86,13 @@ Kernel::~Kernel() {
     if(m_pI2C)       {delete m_pI2C; m_pI2C = nullptr;}
 #endif
 
+#ifdef CONFIG_BLUETOOTH
+    if(m_pBluetooth)       {delete m_pBluetooth; m_pBluetooth = nullptr;}
+#endif
+
     if(m_pSandGlass) {delete m_pSandGlass; m_pSandGlass = nullptr;}
     if(m_pGpio)      {delete m_pGpio; m_pGpio = nullptr;}
+
 }
 
 

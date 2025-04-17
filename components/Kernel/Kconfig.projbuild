@@ -107,38 +107,13 @@ menu "I2C Configuration"
 
 endmenu
 
-
-
-menu "Socket Configuration"
-    config SOCKET
-        bool "Socket"
+menu "Bluetooth Configuration"
+    config BLUETOOTH
+        bool "Bluetooth"
         default y
         help
-            Permet la création d'un serveur Socket
-
-    config TAG_SOCKET
-        depends on SOCKET
-        string "TAG SOCKET"
-        default "Socket"
-        help
-            Tag pour la classe Socket
-
-    config SOCKET_PORT
-        depends on SOCKET
-        int "Port"
-        range 0 65535
-        default 5000
-        help
-            Port du serveur
-
-    config SOCKET_BUF_SIZE
-        depends on SOCKET
-        int "Buf Size"
-        default 128
-        help
-            Taille pour le buffer de reception
+            Permet l'utilisation du Bluetooth
 endmenu
-
 
 menu "UART Configuration"
     config UART
@@ -154,7 +129,7 @@ menu "UART Configuration"
         help
             Tag pour la classe UART
 
-    config GPIO_RANGE_MAX
+    config GPIO_RANGE_MAX_UART
         depends on UART
         int
         default 33
@@ -199,7 +174,7 @@ menu "UART Configuration"
     config UART_PIN_RX
         depends on UART
         int "Pin UART RX"
-        range 0 GPIO_RANGE_MAX
+        range 0 GPIO_RANGE_MAX_UART
         default 35
         help
             Broche RX de l'UART
@@ -207,7 +182,7 @@ menu "UART Configuration"
     config UART_TX_BUF_SIZE
         depends on UART
         int "Buf TX Size"
-        range 0 GPIO_RANGE_MAX
+        range 0 GPIO_RANGE_MAX_UART
         default 255
         help
             Taille pour le buffer TX

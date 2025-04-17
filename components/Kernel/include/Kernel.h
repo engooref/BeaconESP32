@@ -9,8 +9,8 @@
 #include "I2C.h"
 #endif
 
-#ifdef CONFIG_SOCKET
-#include "Socket.h"
+#ifdef CONFIG_BLUETOOTH
+#include "Bluetooth.h"
 #endif
 
 #ifdef CONFIG_UART
@@ -30,9 +30,10 @@ private:
     UART* m_pUart;
 #endif 
 
-#ifdef CONFIG_SOCKET
-    Socket* m_pSocket;
+#ifdef CONFIG_BLUETOOTH
+    BluetoothManager* m_pBluetooth;
 #endif
+
 
 public:
     Kernel();
@@ -56,10 +57,10 @@ protected:
     UART* GetUART() const { return m_pUart; }
 #endif 
 
-#ifdef CONFIG_SOCKET
-    Socket* GetSocket() const { return m_pSocket; }
+#ifdef CONFIG_BLUETOOTH
+    BluetoothManager* GetBluetooth() const { return m_pBluetooth; }
 #endif
-    
+
 private:
     static const std::string TAG;
 };
