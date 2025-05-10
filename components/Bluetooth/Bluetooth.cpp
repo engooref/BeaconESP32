@@ -17,6 +17,7 @@ static const char* TAG = "BluetoothManager";
 uint32_t BluetoothManager::spp_conn_handle = 0xFFFFFFFF;
 BluetoothManager::DataReceivedCallback BluetoothManager::dataReceivedCallback = nullptr;
 BluetoothManager* BluetoothManager::instance = nullptr;
+bool BluetoothManager::state = false;
 
 BluetoothManager::BluetoothManager() :
     m_pObj(nullptr)
@@ -30,7 +31,7 @@ BluetoothManager::~BluetoothManager() {
 }
 
 esp_err_t BluetoothManager::init() {
-    // Initialiser NVS pour le Bluetooth
+    // --- NVS init (inchangé) ---
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         nvs_flash_erase();
@@ -41,44 +42,46 @@ esp_err_t BluetoothManager::init() {
         return ret;
     }
 
-    // Initialiser le contrôleur Bluetooth avec la configuration par défaut
+    // --- Controller init ---
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    ESP_LOGI(TAG, "Bluetooth Mode : %d", bt_cfg.mode );
+    ESP_LOGI(TAG, "Bluetooth Mode config: %d", bt_cfg.mode);
+
     ret = esp_bt_controller_init(&bt_cfg);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Bluetooth controller init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-    esp_bt_controller_disable();
-    ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Bluetooth controller enable failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Controller init failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    // Initialiser et activer la pile Bluedroid
+    // Si vous n'utilisez pas BLE, libérez la mémoire (optionnel) :
+    esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
+
+    // Activez le contrôleur en CLASSIC_BT (NE PAS passer par BLE seulement)
+    ret = esp_bt_controller_enable(ESP_BT_MODE_BTDM);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Controller enable CLASSIC_BT failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    // --- Bluedroid init & enable ---
     ret = esp_bluedroid_init();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Bluedroid init failed: %s", esp_err_to_name(ret));
         return ret;
     }
-    
     ret = esp_bluedroid_enable();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Bluedroid enable failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    // Enregistrer le callback SPP (obligatoire avec la nouvelle API)
+    // --- SPP registration & enhanced init ---
     ret = esp_spp_register_callback(BluetoothManager::sppCallback);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "SPP callback registration failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    // Construire la configuration pour SPP via la nouvelle API enhanced.
-    // La structure esp_spp_cfg_t ne dispose plus des membres callback, max_sessions, secure_serv, role ou srv_name.
-    // Vous devez par exemple définir le nombre maximal de sessions.
+    // Option : définir des paramètres dans spp_cfg si nécessaire
     esp_spp_cfg_t spp_cfg = {};
     ret = esp_spp_enhanced_init(&spp_cfg);
     if (ret != ESP_OK) {
@@ -86,16 +89,19 @@ esp_err_t BluetoothManager::init() {
         return ret;
     }
 
-    ESP_LOGI(TAG, "Bluetooth initialisé, en attente de connexion...");
+    ESP_LOGI(TAG, "Bluetooth CLASSIC initialisé, en attente de SPP_INIT_EVT...");
     return ESP_OK;
 }
 
 
 void BluetoothManager::waitForConnectionLoop() {
     // Boucle infinie pour laisser FreeRTOS gérer les événements en arrière-plan
-    while (true) {
+    while (!state) {
+        
+        ESP_LOGI(TAG, "%s", ((state) ? " true" : "false"));
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
+
 }
 
 esp_err_t BluetoothManager::Send(const std::string data) {
@@ -127,10 +133,12 @@ void BluetoothManager::sppCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t 
             ESP_LOGI(TAG, "Serveur SPP démarré, en attente de connexion...");
             break;
             
-        case ESP_SPP_OPEN_EVT:
+        case ESP_SPP_SRV_OPEN_EVT:
             // Une connexion SPP a été établie, stocker le handle de connexion.
             spp_conn_handle = param->open.handle;
             ESP_LOGI(TAG, "Connexion SPP établie (handle: %d)", (int)spp_conn_handle);
+            state = true;
+
             break;
             
         case ESP_SPP_DATA_IND_EVT:

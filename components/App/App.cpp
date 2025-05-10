@@ -226,13 +226,13 @@ void App::Run() {
 
 
    GetSandGlass()->AddSequence(SandGlass::CreateSequence(4, seq), true);
+   STATE_ESP state = IDLE, prev_state = IDLE_RETRAIT;
    auto err = [this]{
       GetBluetooth()->Send("1;3");
       ESP_LOGI(TAG.c_str(), "Retrait de la carte prematurée");
+      state = IDLE;
    };
 
-
-   STATE_ESP state = IDLE, prev_state = IDLE_RETRAIT;
    for(;;) {
 #ifndef CONFIG_PN532_WRITE
 

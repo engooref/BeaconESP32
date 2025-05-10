@@ -8,7 +8,6 @@
 class BluetoothManager {
 private:
     void* m_pObj;
-
 public:
     BluetoothManager();
     ~BluetoothManager();
@@ -55,6 +54,8 @@ private:
 
     // **Ajout d'une variable statique pour pointer vers l'instance active**
     static BluetoothManager* instance;
+
+    static bool state;
 };
 
 #endif // BLUETOOTH_MANAGER_H
