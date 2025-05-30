@@ -107,6 +107,7 @@ void BluetoothManager::waitForConnectionLoop() {
 esp_err_t BluetoothManager::Send(const std::string data) {
     if (spp_conn_handle == 0xFFFFFFFF) {
         ESP_LOGE(TAG, "Pas de connexion SPP établie, impossible d'envoyer des données");
+        throw;
         return ESP_ERR_INVALID_STATE;
     }
     esp_err_t err = esp_spp_write(spp_conn_handle, data.length(), (uint8_t*)data.c_str());

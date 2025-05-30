@@ -1,6 +1,6 @@
 {
     "idf.adapterTargetName": "esp32",
-    "idf.portWin": "COM8",
+    "idf.portWin": "COM6",
     "files.associations": {
         "*.html": "twig",
         "atomic": "cpp",
